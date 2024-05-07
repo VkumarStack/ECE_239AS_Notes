@@ -69,4 +69,41 @@
 ## Challenges
 - GANS are difficult to train due to sensitivity in hyperparameters - this must often be determined empirically
 - Another issue is mode collapse - the generator may generate certain classes of images too well and continue to generate them since they work well
+  - Consider, for example, a GAN trained on the MNIST dataset that only generates 1's and 0's because such digits are able to fool the discriminator better
 - Another issue is a failure to converge - due to the adversarial nature of these networks, losses may oscillate 
+## Improving GANs
+### Improve the Architecture
+- A **Deep Convolutional GAN (DCGAN)** leverages a convolutional network for both the discriminator and generator
+  - For the discriminator, pooling layers were replaced with strided convolutions, as this yielded better performance
+  - For the generator, transposed convolutions (deconvolutions) were used to increase the feature size
+  - Batchnorm was utilized, and fully connected hidden layers were removed
+  - ReLU was used in the generator for all layers except for the final layer, which used tanh
+    - Images contain pixels with values from [0, 255], which is a *bounded range*, and since tanh is a bounded function, it makes sense to use it as the final layer to map to the pixel ranges
+  - Leaky ReLU was used in the discriminator ofr all layers
+- A **BigGAN** scales up immensely by leveraging inception layers as well as residual connections
+### Improve the Loss Function
+- A **Least Squares GAN** utilizes a different loss function from cross-entropy loss
+  - ![Least-Squares GAN](./Images/Least_Squares_GAN.png)
+    - Set a and b as the labels for the fake data and real data
+    - Set c as the value that the generator wants the discriminator to believe for the fake data
+#### Wasserstein GAN (WGAN)
+- One issue with vanilla GANs is that the gradient is zero when the generator is very poor - so there is poor learning
+  - JS-Divergence is a poor metric for a generator output because it will be low for "better" outputs due to it prioritizing two distributions being closer
+  - A better metric is the Wasserstein distance - think of this intuitively as mass times distance traveled
+    - ![Wasserstein Distance](./Images/Wasserstein_Distance.png)
+    - The further apart the distances, the larger the distance and therefore the larger the loss
+      - Thus, this allows for smaller losses for closer distributions
+    - ![Wasserstein Loss](./Images/Wasserstein_Loss.png)
+      - There are many ways to "move" the masses from one distribution to another, and this is encompassed by a transport plan $\gamma(x, y)$ - thus, the expectation is computed over this transport plan
+        - This can be interpreted as the "correlation" between sections of the two masses (e.g. left tail of first distribution and left tail of second distribution)
+      - This loss is not straightforward to compute, and can instead be shown to be equivalent to:
+        - ![](./Images/Wasserstein_Loss_Equivalent.png)
+          - $f$ is the critic (discriminator)
+          - The `sup` limits the critic to be 1-Lipschitz
+          - The Lipschitz parameter bounds the *slope* of a function
+            - 1-Lipschitz: $|f(x) - f(y)| \leq |x - y|$
+            - What this constraint does is ensures that the discriminator does not change steeply in the cases where $p_{data}$ and $p_{model}$ are close
+            - In practice, this constraint is implemented by performing gradient clipping
+            - A gradient norm penalty can also be imposed
+- ![WGAN Training](./Images/WGAN_Training.png)
+
